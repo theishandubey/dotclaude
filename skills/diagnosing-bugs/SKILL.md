@@ -111,7 +111,7 @@ Tool preference:
 
 ## Phase 5: Fix + regression test
 
-1. Turn the minimised repro into an end-to-end regression test, following the `e2e-tests` skill, and watch it fail.
+1. Turn the minimised repro into a unit regression test at the public function where the faulty logic lives, following the `testing` skill, and watch it fail.
 2. Apply the fix and watch the test pass.
 3. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
 
