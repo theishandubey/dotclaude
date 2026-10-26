@@ -18,7 +18,7 @@ Routing and dispatch rules for the main session live in the orchestrator playboo
 ## Engineering
 
 - Weigh quality, simplicity, robustness, scalability and long-term maintainability above development cost.
-- Only `implementer`, `parallel-implementer` and `fixer` write and run tests, following their preloaded `e2e-tests` skill.
+- Only `implementer`, `parallel-implementer` and `fixer` write and run tests, following their preloaded `testing` skill: unit tests for every change, end-to-end tests only when the user asks for them.
   Everyone else does not write, run or review tests, and verifies a change with the project's build, type-checker or linter, or by running the changed command once.
   Code and security review belong to the user.
 - Fix a bug only after reproducing it with the cheapest command that shows the symptom.

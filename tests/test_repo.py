@@ -130,7 +130,7 @@ class FilesTest(unittest.TestCase):
     def test_vendored_skills_match_lock(self):
         on_disk = {d for d in os.listdir(os.path.join(ROOT, "skills"))
                    if os.path.isfile(os.path.join(ROOT, "skills", d, "SKILL.md"))}
-        own = {"parallel-build", "plan-handoff", "plan-execution", "e2e-tests"}
+        own = {"parallel-build", "plan-handoff", "plan-execution", "testing"}
         self.assertEqual(on_disk, vendored_skills() | own)
         self.assertEqual(os.readlink(os.path.join(ROOT, ".claude", "skills")), "../skills")
 

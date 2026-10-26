@@ -71,7 +71,7 @@ Skip any step = lying, not verifying
 
 ## Key Patterns
 
-Verify with the build, type-checker, linter or the changed command; implementers and `fixer` also run their end-to-end tests as the `e2e-tests` skill describes.
+Verify with the build, type-checker, linter or the changed command; implementers and `fixer` also run their tests as the `testing` skill describes.
 
 **Build:**
 ```

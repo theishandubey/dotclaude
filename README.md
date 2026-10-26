@@ -31,7 +31,8 @@ Code and security review are yours: run `/code-review` and `/security-review` wh
 
 `claude/CLAUDE.md` holds the shared rules every session and agent follows (the two explorers skip it with `omitClaudeMd` and restate the one rule they need).
 
-`implementer` and `parallel-implementer` write and run end-to-end tests for the behavior they change, and `fixer` adds a regression test for each bug and repairs outdated tests, all following the `e2e-tests` skill: full coverage of the changed behavior, iterating on the affected specs and running the whole suite once before reporting, with output kept in files and only failures read.
+`implementer` and `parallel-implementer` write and run unit tests for the logic every change adds or alters, and `fixer` adds a unit regression test for each bug, all following the `testing` skill: tests call public functions without mocking the repo's own code, variations go in table-driven tests, and output is kept in files with only failures read.
+End-to-end tests are written and run only when you ask for them; then the same agents cover the affected user flows through the real entry point, adding a minimal Playwright setup to a web app that has none.
 No other agent writes, runs or reviews tests, so suites are not rerun by several agents for one change; code and security review are yours.
 To map pages whose roles and labels are unclear from the code, agents use `agent-browser` when it is installed (`npm i -g agent-browser && agent-browser install`).
 
@@ -39,7 +40,7 @@ Shared agent instructions live in skills instead of being copied into each agent
 - `plan-handoff`: how planning advisors write plans, with the plan template.
 - `plan-execution`: how workers execute a plan.
 - `parallel-build`: the orchestrator's procedure for parallel worktree builds.
-- `e2e-tests`: how implementers and `fixer` write and run end-to-end tests, including adding a harness to a repo that has none.
+- `testing`: how implementers and `fixer` write and run unit tests for every change, and end-to-end tests when you ask for them.
 
 ## Requirements
 
@@ -148,8 +149,8 @@ These are adapted locally: `verification-before-completion`, `receiving-code-rev
 | `backend-engineer` | `supabase-postgres-best-practices` | `benchmark-checklist` |
 | `sre` | principle: fix-root-causes | `diagnosing-bugs`, `supabase-postgres-best-practices`, `benchmark-checklist` |
 | `frontend-engineer` | | design, motion and UI skills, `vercel-react-best-practices` |
-| `fixer` | `verification-before-completion`, `e2e-tests`, `diagnosing-bugs`, `receiving-code-review`, principle: fix-root-causes | |
-| `implementer`, `parallel-implementer` | `verification-before-completion`, `e2e-tests` | `agent-browser` |
+| `fixer` | `verification-before-completion`, `testing`, `diagnosing-bugs`, `receiving-code-review`, principle: fix-root-causes | |
+| `implementer`, `parallel-implementer` | `verification-before-completion`, `testing` | `agent-browser` |
 | `doc-writer` | `verification-before-completion`, `unslop` | |
 
 The orchestrator writes prose for people through `unslop`.

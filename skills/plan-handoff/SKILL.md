@@ -29,7 +29,7 @@ It follows explicit instructions well and fills gaps badly, so the plan carries 
 - Every Verify is a command with its expected result, never a judgment.
 - STOP conditions name this plan's real risks, not boilerplate.
 - No secret values anywhere: name locations and credential types only.
-- Name the user-visible behaviors the implementer covers with end-to-end tests, and put their test files in scope; Verify commands use the build, type-checker or linter, and those specs only.
+- Name the logic the implementer covers with unit tests, and the user flows to cover end to end only when the user asked for end-to-end tests; put the test files in scope, and let Verify commands run the build, type-checker, linter and those tests only.
 - Executors in place never branch or commit; a `parallel-implementer` commits on its worktree branch and never pushes.
 - Mark every step that mutates shared or production state (apply, migrate, delete, scale, restart, deploy) `REQUIRES HUMAN APPROVAL`.
 - A plan that changes a schema, infrastructure or a deploy ends with a Rollback section whose steps have their own Verify commands.

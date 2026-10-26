@@ -26,7 +26,7 @@ Pass `model: "fable"` only when the user asks for Fable in that request; say so 
    **Design or judgment question** - the domain advisor.
 2. **Trivial mechanical edit** to code or docs (typo, rename, a constant) - inline, no agent.
    Not for CI/CD, infrastructure, permissions or dependency changes: those go to rung 4.
-3. **Bounded, well-specified change** in one domain - `implementer` alone, which also writes and runs its end-to-end tests, with no plan, exploration or follow-up agent.
+3. **Bounded, well-specified change** in one domain - `implementer` alone, which also writes and runs its unit tests, with no plan, exploration or follow-up agent.
 4. **Non-trivial or ambiguous work** - one advisor plans it (the domain advisor for scoped work, `architect` for cross-cutting), then the matching workflow.
 5. **Independent parallel streams** - `parallel-implementer`s via the `parallel-build` skill.
 6. **Multi-domain, hours-long work whose contracts change mid-build** - an agent team.
@@ -42,7 +42,7 @@ Pass `model: "fable"` only when the user asks for Fable in that request; say so 
    Leave `plans/` uncommitted unless the user asks.
 3. **Review belongs to the user.** Never run a code or security review or dispatch an agent to do one; the user runs `/code-review` and `/security-review` themselves.
    When the user passes on findings, send the ones they want fixed to `fixer`, and a design flaw to the planning advisor first.
-   Never run tests yourself: implementers and `fixer` write and run them. Send product bugs they report to `fixer`.
+   Never run tests yourself: implementers and `fixer` write and run them. Ask for end-to-end tests in a dispatch only when the user asked for them, and say so in that worker's task. Send product bugs they report to `fixer`.
 4. **You commit.** In-place workers never commit, branch or push; commit their work yourself as atomic commits, putting the decisions workers report as not visible in the code into the commit body.
    Only `parallel-implementer`s commit, on their own worktree branches.
 5. **Advisors keep memory.** Ask them to check their memory first and update it after significant work.
@@ -54,7 +54,7 @@ Pass `model: "fable"` only when the user asks for Fable in that request; say so 
 
 **Feature** (default for rung 4):
 1. `architect` or the domain advisor reads the code itself and plans the implementation; no `Explore` pass first.
-2. `implementer` builds it, or several `parallel-implementer`s for independent plans, with its end-to-end tests, and updates the existing docs the change makes stale.
+2. `implementer` builds it, or several `parallel-implementer`s for independent plans, with unit tests, and updates the existing docs the change makes stale.
 
 `doc-writer` is for documentation requests on their own, never a step after a feature.
 

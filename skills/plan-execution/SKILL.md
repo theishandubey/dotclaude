@@ -20,7 +20,7 @@ When your task is a plan from `plans/` (or any spec the orchestrator sends):
 6. On genuine ambiguity, or a plan that seems wrong, stop and ask in your report rather than picking a reading.
 7. The orchestrator maintains `plans/README.md`: never edit it, and ignore an untracked `plans/` or `advisor-plans/` in `git status`.
 8. Read the files you will touch and one similar existing example first; match its naming, error handling, imports and layout, but not its comment density.
-9. Before reporting done, run a real check that exercises the change: the project's type-checker, build or linter, or the changed command itself, plus the end-to-end tests your agent instructions call for. Run no other tests.
+9. Before reporting done, run a real check that exercises the change: the project's type-checker, build or linter, or the changed command itself, plus the tests your agent instructions call for. Run no other tests.
    A syntax-only check, or a command that failed to start, does not count.
    If only the project's declared dependencies are missing, install them with its own package manager and lockfile, never with sudo or a system package manager.
    If no real check can run, say which one you did not run and why instead of reporting done.
