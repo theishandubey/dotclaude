@@ -41,9 +41,10 @@ Routing and dispatch rules for the main session live in the orchestrator playboo
 - When the same correction or instruction comes up a second time, encode it as structure (a lint, type, check or script) instead of more text.
   Only when it needs judgment, make the instruction more prominent and add an example of the failure.
 
-## Commits
+## Commits and branches
 
 - Make atomic commits: one logically complete change each, each building and passing on its own.
-- Commit messages describe the change only: no milestone labels, task numbers or step references.
+- Commit messages, branch names and PR titles describe the change only: no plan numbers, milestone labels, task numbers or step references.
+  Name a branch for what it changes, in the repo's branch convention or short kebab-case: `add-top-limit` or `fix-login-redirect`, never `plan-003`, `milestone-2` or `step-4`.
 - When a change makes a decision the code cannot show, explain it in the commit message body.
 - Never add an agent or Claude co-author trailer.
