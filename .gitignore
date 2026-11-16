@@ -1,8 +1,5 @@
 .DS_Store
 __pycache__/
-.claude/agent-memory/
-.claude/agent-memory-local/
-.claude/settings.local.json
-.claude/worktrees/
+/.claude/
 /plans/
 /advisor-plans/

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-python3 -m py_compile hooks/*.py scripts/*.py tests/*.py
+find scripts tests skills -name '*.py' -exec python3 -m py_compile {} +
 if command -v shellcheck >/dev/null 2>&1; then
   shellcheck install.sh scripts/check.sh
 else

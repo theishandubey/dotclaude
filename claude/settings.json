@@ -1,25 +1,16 @@
 {
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5-1",
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5-2",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-5-5",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "30"
   },
-  "attribution": {
-    "commit": "",
-    "pr": "",
-    "sessionUrl": false
-  },
+  "attribution": false,
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Read(*)",
-      "Edit(.claude/agent-memory/**)",
-      "Edit(.claude/agent-memory-local/**)",
-      "Edit(plans/*.md)",
-      "Edit(advisor-plans/*.md)",
       "Bash(mkdir:*)",
       "Bash(node:*)",
       "Bash(npm run:*)",
@@ -39,55 +30,15 @@
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
       "Bash(git worktree:*)"
-    ],
-    "deny": [
-      "Agent(Plan)"
-    ]
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/session-start.py\""
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.claude/hooks/bash-guard.py\"",
-            "onFailure": "block"
-          }
-        ]
-      }
     ]
   },
   "worktree": {
     "baseRef": "head"
   },
   "model": "opus",
+  "advisorModel": "fable",
   "switchModelsOnFlag": false,
   "teammateMode": "auto",
-  "plansDirectory": "./plans/mode",
-  "enabledPlugins": {
-    "meter@claude-mods": true,
-    "agent-graph@claude-mods": true,
-    "statusline@claude-mods": true
-  },
-  "extraKnownMarketplaces": {
-    "claude-mods": {
-      "source": {
-        "source": "git",
-        "url": "https://github.com/theishandubey/claude-mods.git"
-      }
-    }
-  },
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
