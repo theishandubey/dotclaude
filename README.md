@@ -96,7 +96,7 @@ You do not call them by name, except `setup-home-repo`, which runs only when typ
 | Skill | What it does |
 |:--|:--|
 | [**spec**](skills/spec/SKILL.md) | Interviews you in rounds with a recommended answer per question, then writes acceptance cases, a test plan and thin slices with their blockers. |
-| [**design**](skills/design/SKILL.md) | Caller usage first, two structurally different designs before choosing, and a list of shapes to reject. |
+| [**codebase-design**](skills/codebase-design/SKILL.md) | Caller usage first, two structurally different designs before choosing, and a list of shapes to reject. |
 | [**prototype**](skills/prototype/SKILL.md) | The smallest throwaway that answers one design question, then a report and a delete. |
 
 ### Writing and workspace
@@ -231,7 +231,7 @@ The skills are written fresh, but their methods come from other people's work.
 |:--|:--|
 | diagnose | [mattpocock/skills](https://github.com/mattpocock/skills) `diagnosing-bugs`; [pstack](https://github.com/cursor/plugins/tree/main/pstack) bug-fix playbook, `principle-fix-root-causes`, `principle-attack-the-premise`; [simcraft](https://github.com/dotslashsimran/simcraft) `flaky-test-killer` |
 | spec | mattpocock/skills `grilling`, `to-spec`, `to-tickets`; [gstack](https://github.com/garrytan/gstack) `office-hours`, `plan-eng-review`; pstack `poteto-mode` |
-| design | pstack `architect`; mattpocock/skills `codebase-design`, `domain-modeling` |
+| codebase-design | pstack `architect`; mattpocock/skills `codebase-design`, `domain-modeling` |
 | prototype | mattpocock/skills `prototype`; pstack prototype playbook |
 | benchmark | pstack `benchmark-checklist`; simcraft `benchmark-honestly` |
 | map-architecture | simcraft `codebase-map`; [archify](https://github.com/tt-a1i/archify) |
