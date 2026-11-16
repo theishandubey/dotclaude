@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import difflib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -14,15 +16,24 @@ CLAUDE = os.path.join(HOME, ".claude")
 STATE = os.path.join(CLAUDE, "dotclaude-state.json")
 BACKUPS = os.path.join(HOME, ".dotclaude-backups")
 TMUX_MARK = "# dotclaude"
-MANAGED_DIRS = ("agents", "hooks", "skills")
+MANAGED_DIRS = ("agents", "skills")
+SETTINGS_HANDED_TO_USER = ("enabledPlugins", "extraKnownMarketplaces")
+LOCK = os.path.join(REPO, "skills-lock.json")
+GLOBAL_LOCK = os.path.join(HOME, ".agents", ".skill-lock.json")
+SKILLS_CLI = "skills@1.8.1"
 MISSING = object()
+HOOK_SCRIPT = re.compile(r"(?:\$HOME|\$\{HOME\}|~|" + re.escape(HOME) + r")/\.claude/hooks/([\w.-]+)")
 COLOR = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
 
 
-def say(kind, text):
-    colors = {"ok": "32", "change": "36", "confirm": "33", "warn": "31"}
+def labelled(kind, text):
+    colors = {"ok": "32", "change": "36", "backup": "33", "warn": "31"}
     label = f"\033[{colors[kind]}m{kind}:\033[0m" if COLOR else f"{kind}:"
-    print(f"  {label} {text}")
+    return f"  {label} {text}"
+
+
+def say(kind, text):
+    print(labelled(kind, text))
 
 
 def short(path):
@@ -41,7 +52,7 @@ def from_any_checkout(path):
         return False
     directory = os.path.dirname(os.path.realpath(path))
     while directory != os.path.dirname(directory):
-        if all(os.path.exists(os.path.join(directory, m)) for m in ("install.sh", "claude/CLAUDE.md", "agents")):
+        if all(os.path.exists(os.path.join(directory, m)) for m in ("install.sh", "claude/CLAUDE.md", "skills")):
             return True
         directory = os.path.dirname(directory)
     return False
@@ -96,21 +107,33 @@ def write_json(path, data):
     os.replace(tmp, path)
 
 
+class Group:
+    def __init__(self, title):
+        self.title = title
+        self.lines = []
+        self.actions = []
+
+
 class Plan:
     def __init__(self, stamp):
-        self.steps = []
+        self.groups = []
         self.stamp = stamp
 
+    def group(self, title):
+        self.groups.append(Group(title))
+
     def ok(self, text):
-        say("ok", text)
+        self.groups[-1].lines.append(labelled("ok", text))
 
-    def add(self, text, action, confirm=False):
-        say("confirm" if confirm else "change", text)
-        self.steps.append((text, action, confirm))
+    def warn(self, text):
+        self.groups[-1].lines.append(labelled("warn", text))
 
-    @property
-    def needs_confirm(self):
-        return any(c for _, _, c in self.steps)
+    def note(self, text):
+        self.groups[-1].lines.append(f"      {text}")
+
+    def add(self, text, action, moves_aside=False):
+        self.groups[-1].lines.append(labelled("backup" if moves_aside else "change", text))
+        self.groups[-1].actions.append(action)
 
     def backup(self, path):
         dest = os.path.join(BACKUPS, self.stamp, os.path.relpath(path, HOME))
@@ -119,20 +142,19 @@ class Plan:
         return dest
 
 
+def first_party_skills():
+    skills = os.path.join(REPO, "skills")
+    return [n for n in sorted(os.listdir(skills)) if os.path.isfile(os.path.join(skills, n, "SKILL.md"))]
+
+
 def desired_links():
     links = {os.path.join(CLAUDE, "CLAUDE.md"): os.path.join(REPO, "claude", "CLAUDE.md")}
     agents = os.path.join(REPO, "agents")
-    for tier in sorted(os.listdir(agents)):
-        for name in sorted(os.listdir(os.path.join(agents, tier))):
-            if name.endswith(".md"):
-                links[os.path.join(CLAUDE, "agents", name)] = os.path.join(agents, tier, name)
-    for name in sorted(os.listdir(os.path.join(REPO, "hooks"))):
-        if name.endswith(".py"):
-            links[os.path.join(CLAUDE, "hooks", name)] = os.path.join(REPO, "hooks", name)
-    skills = os.path.join(REPO, "skills")
-    for name in sorted(os.listdir(skills)):
-        if os.path.isfile(os.path.join(skills, name, "SKILL.md")):
-            links[os.path.join(CLAUDE, "skills", name)] = os.path.join(skills, name)
+    for name in sorted(os.listdir(agents)):
+        if name.endswith(".md"):
+            links[os.path.join(CLAUDE, "agents", name)] = os.path.join(agents, name)
+    for name in first_party_skills():
+        links[os.path.join(CLAUDE, "skills", name)] = os.path.join(REPO, "skills", name)
     return links
 
 
@@ -173,7 +195,7 @@ def plan_managed_dir(plan, name):
             say("change", f"backed up {short(path)} to {short(plan.backup(path))}")
             os.makedirs(path)
 
-        plan.add(f"back up the link {short(path)} and replace it with a directory of links", run, confirm=True)
+        plan.add(f"back up the link {short(path)} and replace it with a directory of links", run, moves_aside=True)
     return True
 
 
@@ -197,7 +219,7 @@ def plan_link(plan, target, source, fresh=False):
     elif into_repo(target) or from_any_checkout(target) or not os.path.exists(target):
         plan.add(f"relink {short(target)} -> {short(source)}", make())
     else:
-        plan.add(f"back up {short(target)} and link it to {short(source)}", make(backup=True), confirm=True)
+        plan.add(f"back up {short(target)} and link it to {short(source)}", make(backup=True), moves_aside=True)
 
 
 def stale_links(desired, include_dirs=False):
@@ -214,15 +236,43 @@ def stale_links(desired, include_dirs=False):
     return found
 
 
+def settings_diff(before, after):
+    old, new = (json.dumps(x, indent=2).splitlines() for x in (before, after))
+    return list(difflib.unified_diff(old, new, lineterm="", n=1))[2:]
+
+
+def runs_a_missing_script(hook):
+    scripts = [os.path.join(CLAUDE, "hooks", name) for name in HOOK_SCRIPT.findall(hook.get("command", ""))]
+    return any(not os.path.exists(script) for script in scripts)
+
+
+def without_dead_hooks(settings):
+    events = {}
+    for event, entries in settings.get("hooks", {}).items():
+        kept = [dict(entry, hooks=[h for h in entry.get("hooks", []) if not runs_a_missing_script(h)])
+                for entry in entries]
+        kept = [entry for entry in kept if entry["hooks"]]
+        if kept:
+            events[event] = kept
+    cleaned = {key: value for key, value in settings.items() if key != "hooks"}
+    if events:
+        cleaned["hooks"] = events
+    return cleaned
+
+
 def plan_settings(plan, uninstall=False):
     path = os.path.join(CLAUDE, "settings.json")
     user = load_json(path, {})
     state = load_json(STATE, None)
-    base = state.get("settings", {}) if state is not None else {}
+    base = dict(state.get("settings", {})) if state is not None else {}
+    for key in SETTINGS_HANDED_TO_USER:
+        base.pop(key, None)
     defaults = {} if uninstall else load_json(os.path.join(REPO, "claude", "settings.json"), {})
     merged = merge3(base, user, defaults)
     if merged is MISSING:
         merged = {}
+    if not uninstall:
+        merged = without_dead_hooks(merged)
     changed = canon(merged) != canon(user)
     state_changed = uninstall and state is not None or not uninstall and (state is None or canon(base) != canon(defaults))
 
@@ -239,6 +289,8 @@ def plan_settings(plan, uninstall=False):
         keys = sorted({k for k in set(merged) | set(user) if canon(merged.get(k)) != canon(user.get(k))})
         verb = "remove this repo's defaults from" if uninstall else "merge defaults into"
         plan.add(f"{verb} {short(path)} ({', '.join(keys)})", run)
+        for line in settings_diff(user, merged):
+            plan.note(line)
     elif state_changed:
         plan.add("record the applied settings defaults", run)
     else:
@@ -289,7 +341,7 @@ def plan_tmux(plan, uninstall=False):
                 f.write("\n")
             f.write(source_line())
 
-    plan.add(f"add a source-file line for tmux/tmux.conf to {short(active)}", append, confirm=True)
+    plan.add(f"add a source-file line for tmux/tmux.conf to {short(active)}", append)
 
 
 def newest_backup(path):
@@ -312,58 +364,157 @@ def plan_unlink(plan, path, restore):
             shutil.move(backup, path)
 
     if backup:
-        plan.add(f"remove link {short(path)} and restore {short(backup)}", run, confirm=True)
+        plan.add(f"remove link {short(path)} and restore {short(backup)}", run)
     else:
         plan.add(f"remove link {short(path)}", run)
 
 
-def confirm(plan, assume_yes):
-    if not plan.needs_confirm or assume_yes:
-        return True
-    if not sys.stdin.isatty():
-        print("Changes marked 'confirm' need --yes when not run from a terminal; nothing was changed.", file=sys.stderr)
-        return False
-    answer = input("Apply the changes marked 'confirm'? [y/N] ").strip().lower()
-    return answer in ("y", "yes")
+def installed_by_the_skills_cli(name):
+    path = os.path.join(CLAUDE, "skills", name)
+    return os.path.isfile(os.path.join(path, "SKILL.md")) and not (into_repo(path) or from_any_checkout(path))
+
+
+def skills_cli_add(name, source, assume_yes):
+    command = ["npx", *(["--yes"] if assume_yes else []), SKILLS_CLI, "add", source, "-g", "-a", "claude-code", "-s", name]
+    if assume_yes:
+        command.append("-y")
+    return command
+
+
+def plan_third_party(plan, assume_yes):
+    recorded = load_json(LOCK, {}).get("skills", {})
+    first_party = first_party_skills()
+    have_npx = shutil.which("npx") is not None
+    for name, entry in sorted(recorded.items()):
+        if name in first_party:
+            plan.warn(f"{name} is recorded in skills-lock.json but this repo ships its own; skipped")
+        elif installed_by_the_skills_cli(name):
+            plan.ok(f"{name} ({entry['source']})")
+        elif not have_npx:
+            plan.warn(f"{name} is missing and npx is not installed; skipped")
+        else:
+            command = skills_cli_add(name, entry["source"], assume_yes)
+
+            def run(name=name, command=command):
+                if subprocess.run(command).returncode != 0:
+                    say("warn", f"{name} was not installed: {' '.join(command)} failed")
+
+            plan.add(f"install {name}: {' '.join(command)}", run)
+
+
+def unrecorded_skills():
+    installed = load_json(GLOBAL_LOCK, {}).get("skills", {})
+    skip = set(load_json(LOCK, {}).get("skills", {})) | set(first_party_skills())
+    return {name: installed[name] for name in sorted(installed) if name not in skip}
+
+
+def record_chosen(extras):
+    answer = prompt('Record which? Names separated by spaces, "all", or nothing: ')
+    chosen = list(extras) if answer == "all" else [n for n in answer.split() if n in extras]
+    if not chosen:
+        return
+    lock = load_json(LOCK, {"version": 1, "skills": {}})
+    for name in chosen:
+        lock["skills"][name] = {k: extras[name][k] for k in ("source", "sourceType", "skillPath") if k in extras[name]}
+    write_json(LOCK, lock)
+    say("change", f"recorded {', '.join(chosen)} in skills-lock.json")
+
+
+def plan_extras(plan, interactive):
+    extras = unrecorded_skills()
+    if not extras:
+        return
+    plan.group("Installed skills not recorded in skills-lock.json")
+    for name, entry in extras.items():
+        plan.note(f"{name} ({entry.get('source', 'unknown source')})")
+    if interactive:
+        plan.add("choose which of these to record", lambda: record_chosen(extras))
+    else:
+        plan.note("run ./install.sh from a terminal without --yes to record any of them")
+
+
+def prompt(question):
+    try:
+        return input(question).strip().lower()
+    except EOFError:
+        return ""
+
+
+def decide(group):
+    while True:
+        answer = prompt(f"{group.title}: apply? [y]es / [s]kip / [q]uit: ")
+        if not answer:
+            return "quit"
+        for choice in ("yes", "skip", "quit"):
+            if choice.startswith(answer):
+                return choice
+
+
+def carry_out(plan, assume_yes, dry_run):
+    for group in plan.groups:
+        if not group.lines:
+            continue
+        print(group.title)
+        print("\n".join(group.lines))
+        if dry_run or not group.actions:
+            continue
+        choice = "yes" if assume_yes else decide(group)
+        if choice == "quit":
+            print("Stopped; the remaining steps were not applied.")
+            return
+        if choice == "yes":
+            for action in group.actions:
+                action()
+    if not dry_run:
+        print("Done.")
 
 
 def main(argv):
     parser = argparse.ArgumentParser(prog="install.sh", description="Link this Claude Code config into ~/.claude.")
     parser.add_argument("--dry-run", action="store_true", help="print the plan and change nothing")
-    parser.add_argument("-y", "--yes", action="store_true", help="apply changes that need confirmation without asking")
+    parser.add_argument("-y", "--yes", action="store_true", help="apply every step without asking")
     parser.add_argument("--uninstall", action="store_true", help="remove the links and this repo's settings defaults")
     args = parser.parse_args(argv)
+    on_terminal = sys.stdin.isatty()
+    dry_run = args.dry_run or not (args.yes or on_terminal)
 
     plan = Plan(time.strftime("%Y%m%d-%H%M%S"))
     print(f"dotclaude {'uninstall' if args.uninstall else 'install'} from {short(REPO)}")
     try:
         if args.uninstall:
+            plan.group("Links")
             for path in stale_links({}, include_dirs=True):
                 plan_unlink(plan, path, restore=True)
         else:
+            plan.group("Agents, skills and CLAUDE.md")
             desired = desired_links()
             migrating = {os.path.join(CLAUDE, d) for d in MANAGED_DIRS if plan_managed_dir(plan, d)}
             for target, source in desired.items():
                 plan_link(plan, target, source, fresh=os.path.dirname(target) in migrating)
             for path in stale_links(desired):
                 plan_unlink(plan, path, restore=False)
+        plan.group("Settings")
         plan_settings(plan, uninstall=args.uninstall)
+        plan.group("tmux")
         plan_tmux(plan, uninstall=args.uninstall)
+        if not args.uninstall:
+            plan.group("Third-party skills")
+            plan_third_party(plan, args.yes)
+            plan_extras(plan, interactive=on_terminal and not args.yes and not args.dry_run)
     except (OSError, ValueError) as e:
         print(f"error: {e}; nothing was changed.", file=sys.stderr)
         return 1
 
-    if not plan.steps:
+    if not any(group.actions for group in plan.groups):
+        carry_out(plan, assume_yes=False, dry_run=True)
         print("Everything is in place.")
-        return 0
-    if args.dry_run:
+    elif dry_run:
+        carry_out(plan, assume_yes=False, dry_run=True)
+        if not args.dry_run:
+            print("No terminal and no --yes, so this ran as a dry run.")
         print("Dry run: nothing was changed.")
-        return 0
-    if not confirm(plan, args.yes):
-        return 1
-    for text, action, _ in plan.steps:
-        action()
-    print("Done.")
+    else:
+        carry_out(plan, args.yes, dry_run=False)
     return 0
 
 
