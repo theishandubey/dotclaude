@@ -55,6 +55,25 @@ class SkillsTest(unittest.TestCase):
                 meta = frontmatter(os.path.join(ROOT, "skills", name, "SKILL.md"))
                 self.assertFalse(RESTRICTS_BUILT_INS & set(meta))
 
+    def test_skill_links_point_at_files(self):
+        for name in first_party_skills():
+            folder = os.path.join(ROOT, "skills", name)
+            for target in re.findall(r"\]\(([^)#:]+)\)", rd(os.path.join(folder, "SKILL.md"))):
+                with self.subTest(skill=name, link=target):
+                    self.assertTrue(os.path.isfile(os.path.join(folder, target)))
+
+    def test_skill_evals_have_assertions_and_both_trigger_outcomes(self):
+        for name in first_party_skills():
+            evals = os.path.join(ROOT, "skills", name, "evals")
+            if not os.path.isdir(evals):
+                continue
+            with self.subTest(skill=name):
+                cases = json.loads(rd(os.path.join(evals, "evals.json")))["evals"]
+                self.assertEqual(len({c["id"] for c in cases}), len(cases))
+                self.assertTrue(all(c["prompt"] and c["assertions"] for c in cases))
+                triggers = json.loads(rd(os.path.join(evals, "triggers.json")))
+                self.assertEqual({t["should_trigger"] for t in triggers}, {True, False})
+
     def test_third_party_skills_are_recorded_not_committed(self):
         recorded = json.loads(rd(os.path.join(ROOT, "skills-lock.json")))["skills"]
         self.assertFalse(set(recorded) & set(first_party_skills()))
