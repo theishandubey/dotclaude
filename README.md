@@ -2,12 +2,12 @@
 
 # dotclaude
 
-**A small Claude Code setup: one rules file, settings defaults, two agents and eight skills.**
+**A small Claude Code setup: one rules file, settings defaults, two agents and nine skills.**
 
 The main session plans and builds. Nothing here replaces or restricts what Claude Code already ships.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-black?style=flat-square)](LICENSE)
-[![Skills](https://img.shields.io/badge/skills-8-black?style=flat-square)](#skills)
+[![Skills](https://img.shields.io/badge/skills-9-black?style=flat-square)](#skills)
 [![Claude Code](https://img.shields.io/badge/for-Claude%20Code-d97757?style=flat-square)](https://claude.com/claude-code)
 
 [Install](#install) · [Skills](#skills) · [Agents](#agents-and-models) · [Workflow](#workflow) · [Rules](#rules) · [Settings](#settings) · [Home repos](#home-repos) · [Credits](#credits)
@@ -96,7 +96,7 @@ You do not call them by name, except `setup-home-repo`, which runs only when typ
 | Skill | What it does |
 |:--|:--|
 | [**spec**](skills/spec/SKILL.md) | Interviews you in rounds with a recommended answer per question, then writes acceptance cases, a test plan and thin slices with their blockers. |
-| [**design**](skills/design/SKILL.md) | Caller usage first, two structurally different designs before choosing, and a list of shapes to reject. |
+| [**codebase-design**](skills/codebase-design/SKILL.md) | Caller usage first, two structurally different designs before choosing, and a list of shapes to reject. |
 | [**prototype**](skills/prototype/SKILL.md) | The smallest throwaway that answers one design question, then a report and a delete. |
 
 ### Writing and workspace
@@ -105,6 +105,12 @@ You do not call them by name, except `setup-home-repo`, which runs only when typ
 |:--|:--|
 | [**unslop**](skills/unslop/SKILL.md) | Cuts AI tells from anything a person will read. |
 | [**setup-home-repo**](skills/setup-home-repo/SKILL.md) | Turns a folder of repos into a private repo that versions their shared plans, specs and architecture docs. Typed only: `/setup-home-repo`. |
+
+### Tools
+
+| Skill | What it does |
+|:--|:--|
+| [**apple-container**](skills/apple-container/SKILL.md) | Apple's `container` CLI on a Mac: where it differs from Docker, when to use a container, a machine or a cluster, and safe defaults for what an agent creates. Flags come from `--help`, and the details are in references loaded on demand. Its evals are in [`evals/`](skills/apple-container/evals). |
 
 Recorded third-party skills, installed globally by the installer: [`agent-browser`](https://github.com/vercel-labs/agent-browser) for driving a browser, [`shadcn`](https://github.com/shadcn/ui) and [`improve`](https://github.com/shadcn/improve), [`portless`](https://github.com/vercel-labs/portless) for named local dev URLs, and the seven animation and interface design skills from [emilkowalski/skill](https://github.com/emilkowalski/skill).
 
@@ -225,14 +231,15 @@ The skills are written fresh, but their methods come from other people's work.
 |:--|:--|
 | diagnose | [mattpocock/skills](https://github.com/mattpocock/skills) `diagnosing-bugs`; [pstack](https://github.com/cursor/plugins/tree/main/pstack) bug-fix playbook, `principle-fix-root-causes`, `principle-attack-the-premise`; [simcraft](https://github.com/dotslashsimran/simcraft) `flaky-test-killer` |
 | spec | mattpocock/skills `grilling`, `to-spec`, `to-tickets`; [gstack](https://github.com/garrytan/gstack) `office-hours`, `plan-eng-review`; pstack `poteto-mode` |
-| design | pstack `architect`; mattpocock/skills `codebase-design`, `domain-modeling` |
+| codebase-design | pstack `architect`; mattpocock/skills `codebase-design`, `domain-modeling` |
 | prototype | mattpocock/skills `prototype`; pstack prototype playbook |
 | benchmark | pstack `benchmark-checklist`; simcraft `benchmark-honestly` |
 | map-architecture | simcraft `codebase-map`; [archify](https://github.com/tt-a1i/archify) |
 | unslop | Adapted from pstack `unslop`, with its license in the skill folder |
 | setup-home-repo | The home repo pattern described on [aihero.dev](https://www.aihero.dev) |
+| apple-container | Apple's [container docs](https://github.com/apple/container/tree/main/docs) at release 1.7.1; [jcordon5/apple-container-skill](https://github.com/jcordon5/apple-container-skill) |
 
-mattpocock/skills, pstack, simcraft and gstack are MIT licensed; archify is Apache-2.0.
+mattpocock/skills, pstack, simcraft, gstack and jcordon5/apple-container-skill are MIT licensed; archify and apple/container are Apache-2.0.
 
 ## License
 

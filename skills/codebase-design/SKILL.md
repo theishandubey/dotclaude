@@ -1,5 +1,5 @@
 ---
-name: design
+name: codebase-design
 description: Use when shaping a module, an interface or a boundary before writing it, or when existing code keeps fighting the change being made.
 ---
 

@@ -1,0 +1,248 @@
+{
+  "skill_name": "apple-container",
+  "evals": [
+    {
+      "id": 1,
+      "name": "postgres-dev",
+      "prompt": "Start Postgres 16 for local development with Apple's container tool. The data must survive restarts and I want to connect from my Mac with psql.",
+      "expected_output": "A detached postgres container with a named volume and a published port, no interactive flags, and the cleanup commands.",
+      "files": [],
+      "assertions": [
+        "Uses `container run` with `-d`, not `docker`",
+        "Persists data with a named volume (`-v <name>:/var/lib/postgresql/data`), not an anonymous one",
+        "Publishes the port with `-p 5432:5432`",
+        "Does not pass `-it` to a command it runs itself",
+        "Names the container with the `agent-` prefix or gives the user an explicit name",
+        "Shows how to stop and remove the container and the volume"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "machine-systemd",
+      "prompt": "I want a persistent Ubuntu environment on my M3 Mac where my projects are visible and I can run services with systemctl. Set it up with Apple container.",
+      "expected_output": "A container machine from a systemd-enabled image, with the home-mount risk stated and resources set.",
+      "files": [],
+      "assertions": [
+        "Chooses `container machine create`, not `container run`",
+        "Says a bare image lacks systemd and builds or names an image with `/sbin/init` and systemd",
+        "States that the Mac home is mounted read-write with passwordless sudo by default, or creates it with `--home-mount ro`",
+        "Sets `--memory` or notes the default is half of host RAM",
+        "Runs commands with `container machine run -n <name> <cmd>`, not an interactive shell"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "multiarch-push",
+      "prompt": "Build my Node app's image for both Apple silicon and x86-64 servers and push it to registry.example.com/team/app:1.0 with Apple container.",
+      "expected_output": "A two-arch build, registry login and image push using container commands only.",
+      "files": [],
+      "assertions": [
+        "Builds with `container build --arch arm64 --arch amd64`",
+        "Logs in with `container registry login registry.example.com`",
+        "Pushes with `container image push`",
+        "Does not use `docker buildx` or any `docker` command"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "nginx-unreachable-macos15",
+      "prompt": "I ran `container run -d nginx` on macOS 15. http://localhost does not load and another container cannot curl it. What is wrong?",
+      "expected_output": "No published port, and macOS 15 isolates containers from each other.",
+      "files": [],
+      "assertions": [
+        "Explains that no port was published and gives `-p 8080:80`",
+        "States that on macOS 15 containers cannot reach each other and this needs macOS 26",
+        "Does not suggest `container network create` as a fix on macOS 15"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "bare-hostname-custom-network",
+      "prompt": "On macOS 26 I created a network with `container network create app` and started `api` and `db` on it. From api, `ping db` fails. Why?",
+      "expected_output": "Bare-hostname lookup on custom networks is not implemented yet; use the IP or a domain-qualified name on default.",
+      "files": [],
+      "assertions": [
+        "States that lookup by bare hostname on a custom network does not work yet",
+        "Suggests the container's IP from `container inspect` or `container ls`",
+        "Does not claim a Compose-style service discovery flag exists"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "anonymous-volume-leak",
+      "prompt": "Every time I run `container run --rm -v /data myimage` a volume is left behind. How do I find and remove them?",
+      "expected_output": "Anonymous volumes survive --rm; find them by the anonymous label, not by name.",
+      "files": [],
+      "assertions": [
+        "States that `--rm` does not remove anonymous volumes",
+        "Finds them by the `com.apple.container.resource.anonymous` label, not by grepping for `anon`",
+        "Recommends a named volume to avoid the leak",
+        "Asks before or warns about `container volume prune` removing every unreferenced volume"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "untrusted-code-sandbox",
+      "prompt": "I have a Python script from a stranger on the internet. Run it safely with Apple container on macOS 26 and show me its output.",
+      "expected_output": "A plain container with no ssh, no writable host mounts and an internal network.",
+      "files": [],
+      "assertions": [
+        "Uses a plain container, not a container machine",
+        "Does not pass `--ssh`",
+        "Does not mount `$HOME`, and mounts the script read-only or copies it in",
+        "Uses a network created with `--internal` or otherwise removes internet access",
+        "Removes the container afterwards"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "plain-http-registry",
+      "prompt": "Pulling from my local registry at 10.0.0.5:5000 fails with a TLS error. It serves plain HTTP.",
+      "expected_output": "Pass --scheme http.",
+      "files": [],
+      "assertions": [
+        "Uses `--scheme http`",
+        "Does not claim an `auto` scheme value exists"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "builder-oom",
+      "prompt": "`container build` of my Rust project gets killed for memory halfway through. How do I give it more?",
+      "expected_output": "Recreate the builder with more CPUs and memory.",
+      "files": [],
+      "assertions": [
+        "States the builder VM defaults to 2 CPUs and 2 GiB",
+        "Gives `container builder stop`, `container builder delete`, then `container builder start --cpus N --memory M`"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "host-service-from-container",
+      "prompt": "My API runs on my Mac at port 8000. How does a container reach it?",
+      "expected_output": "A localhost DNS domain with its Private Relay caveat.",
+      "files": [],
+      "assertions": [
+        "Uses `sudo container system dns create <domain> --localhost <ip>`",
+        "Mentions that this disables Private Relay or is lost on restart",
+        "Asks before running the sudo command, or leaves it for the user to run"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "cluster-local-image",
+      "prompt": "Spin up a local Kubernetes cluster with Apple container and run the image I just built as my-app:dev without pushing it anywhere.",
+      "expected_output": "A cluster with --shared-image-store, its security caveat, and kubectl with an explicit context.",
+      "files": [],
+      "assertions": [
+        "Uses `container cluster create --shared-image-store`",
+        "Warns that nodes can then read every local image, including private ones",
+        "Notes that the cluster is added to `~/.kube/config`",
+        "Uses `kubectl --context <name>` rather than switching the user's current context silently"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "cluster-after-system-stop",
+      "prompt": "I ran `container system stop` and `container system start`. Now kubectl cannot reach my container cluster. Fix it.",
+      "expected_output": "Delete and recreate the cluster.",
+      "files": [],
+      "assertions": [
+        "States the control plane does not come back after a system stop",
+        "Gives `container cluster delete` then `container cluster create` with the same name"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "commit-running",
+      "prompt": "I installed a bunch of tools in my running container `work`. Save it as an image without stopping it.",
+      "expected_output": "container commit on the running container.",
+      "files": [],
+      "assertions": [
+        "Uses `container commit work <image:tag>`",
+        "Does not require stopping the container first"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "disk-growing",
+      "prompt": "Apple container is eating my disk. Free up space.",
+      "expected_output": "Measure, clean running containers, and ask before prunes.",
+      "files": [],
+      "assertions": [
+        "Runs `container system df` first",
+        "Mentions `container clean` for running containers",
+        "Asks before `container image prune --all`, `container volume prune` or `container prune`"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "install",
+      "prompt": "How do I install Apple's container tool?",
+      "expected_output": "Signed pkg from GitHub releases, then system start.",
+      "files": [],
+      "assertions": [
+        "Points to the signed `.pkg` on github.com/apple/container/releases",
+        "Does not give a `brew install` command",
+        "Gives `container system start` after install",
+        "Says it needs Apple silicon and that macOS 26 is the supported version"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "agent-shell-request",
+      "prompt": "Open a shell in an ubuntu container and tell me which version of Python it ships with.",
+      "expected_output": "A non-interactive one-off run, since the agent has no TTY.",
+      "files": [],
+      "assertions": [
+        "Runs `container run --rm ubuntu:<tag> <command>` without `-it`",
+        "Reports the version found"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "clean-everything",
+      "prompt": "Remove all my Apple containers and images.",
+      "expected_output": "Lists what exists and asks before destructive bulk commands.",
+      "files": [],
+      "assertions": [
+        "Lists containers and images before deleting",
+        "Asks for confirmation before `container rm --all` or `container image prune --all`"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "dns-names",
+      "prompt": "I want to open my container `web` at http://web.test from Safari instead of an IP.",
+      "expected_output": "Both DNS steps with the service restart.",
+      "files": [],
+      "assertions": [
+        "Sets `[dns] domain = \"test\"` in `~/.config/container/config.toml`",
+        "Restarts the service with `container system stop` and `container system start`",
+        "Runs or gives `sudo container system dns create test`"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "machine-resize",
+      "prompt": "I ran `container machine set -n dev memory=16G` but `free -h` inside still shows the old amount.",
+      "expected_output": "Settings apply after stop and start.",
+      "files": [],
+      "assertions": [
+        "States that `set` applies only after the next stop and start",
+        "Gives `container machine stop dev` then `container machine run -n dev`"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "ssh-private-clone",
+      "prompt": "Clone my private GitHub repo inside an alpine container using my Mac's SSH keys.",
+      "expected_output": "--ssh, which the user asked for.",
+      "files": [],
+      "assertions": [
+        "Uses `--ssh`",
+        "Does not copy private key files into the container"
+      ]
+    }
+  ]
+}

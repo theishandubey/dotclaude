@@ -1,0 +1,20 @@
+[
+  {"query": "run postgres on my mac with apple container", "should_trigger": true},
+  {"query": "container machine create fails with setup error on my alpine image", "should_trigger": true},
+  {"query": "replace Docker Desktop with Apple's container CLI for my dev setup", "should_trigger": true},
+  {"query": "why does container system start hang on first run", "should_trigger": true},
+  {"query": "container build --arch amd64 is very slow on my M2", "should_trigger": true},
+  {"query": "local kubernetes with container cluster create", "should_trigger": true},
+  {"query": "my apple container can't reach another container by name", "should_trigger": true},
+  {"query": "give me a persistent linux VM on macOS 26 that shares my home folder", "should_trigger": true},
+  {"query": "sandbox this untrusted script in a VM on my Mac without Docker", "should_trigger": true},
+  {"query": "container ls doesn't show an IP for my nginx", "should_trigger": true},
+  {"query": "write a docker-compose.yml for postgres and redis", "should_trigger": false},
+  {"query": "podman machine init keeps failing", "should_trigger": false},
+  {"query": "set up OrbStack for my rails app", "should_trigger": false},
+  {"query": "deploy this deployment.yaml to our EKS cluster", "should_trigger": false},
+  {"query": "optimize this Dockerfile to make the image smaller", "should_trigger": false},
+  {"query": "colima start --cpu 4 errors out", "should_trigger": false},
+  {"query": "use CSS container queries for this card layout", "should_trigger": false},
+  {"query": "install docker on my ubuntu server", "should_trigger": false}
+]
