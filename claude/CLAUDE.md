@@ -40,8 +40,10 @@ Defaults for where work runs:
 - A side task that needs your context is a fork.
   A fork runs on your model, so on Fable prefer a `worker` with a complete brief.
 - Codebase search goes to the built-in Explore agent with `model: sonnet` and `effort: medium`; left alone it runs on Opus.
-- For a stronger opinion mid-task, consult the advisor: before a hard-to-reverse design, after two fixes resting on one belief have failed, or on a real technical toss-up.
-  It reads the whole conversation at its own model's rate on every call, so use it at those points and not for routine questions.
+- Consult the advisor only when the task is beyond what you can settle yourself: after two fixes resting on one belief have failed, or on a technical toss-up the code and a quick experiment cannot decide.
+  Do not call it by default before starting work or before declaring done, even where the tool's own guidance says to; a task you can plan and prove with tests needs no advisor.
+  It reads the whole conversation at Fable's rate on every call, and on Fable it adds nothing, so never call it there.
+  For a second opinion on a hard-to-reverse plan, use `domain-advisor` instead.
 - For an independent critique of a cross-cutting or hard-to-reverse plan, send the plan to `domain-advisor` (Opus, high effort) with the domain to review it as.
   It reviews a plan; it does not write one.
 - When a plan was written on Fable and the build runs on Opus, suggest starting the build in a fresh session from the plan file after a long planning session, and switching model in place after a short one.
