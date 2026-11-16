@@ -9,7 +9,7 @@ Edit text to remove AI patterns. Scan for the patterns below, then rewrite. Pres
 
 ## Patterns to detect and fix
 
-Rule numbers are stable ids that other skills cite. A removed rule leaves a gap.
+Rule numbers are stable ids. A removed rule leaves a gap.
 
 ### Content
 
