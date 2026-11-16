@@ -321,7 +321,7 @@ def plan_tmux(plan, uninstall=False):
                             f.writelines(l for l in lines if not l.rstrip().endswith(TMUX_MARK))
                     plan.add(f"remove the dotclaude line from {short(conf)}", strip)
         return
-    if into_repo(dotfile) or from_any_checkout(dotfile):
+    if into_repo(dotfile) or from_any_checkout(dotfile) or (os.path.islink(dotfile) and not os.path.exists(dotfile)):
         plan_link(plan, dotfile, source)
         return
     active = dotfile if os.path.lexists(dotfile) else xdg if os.path.lexists(xdg) else None
