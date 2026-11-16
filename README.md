@@ -20,7 +20,7 @@ This is my personal Claude Code configuration, symlinked into `~/.claude` by an 
 It is three things:
 
 - **Rules** in [`claude/CLAUDE.md`](claude/CLAUDE.md): how to write, what a finished change must have, and what to weigh when choosing how to execute a plan.
-- **Settings defaults** in [`claude/settings.json`](claude/settings.json), merged into your own file without overwriting what you changed.
+- **Settings** in [`claude/settings.json`](claude/settings.json), linked as `~/.claude/settings.json`.
 - **Skills** in [`skills/`](skills): one method each, for work the built-in commands do not teach.
 - **Two agents** in [`agents/`](agents): `worker` and `domain-advisor`, which fix a model and an effort level and nothing else.
 
@@ -37,61 +37,42 @@ git clone https://github.com/theishandubey/dotclaude.git ~/dotclaude
 ~/dotclaude/install.sh
 ```
 
-The installer works in steps and asks before each one.
-Answer `y` to apply a step, `s` to skip it, or `q` to stop.
+The installer links everything from this checkout into place:
 
-| Step | What it does |
+| Link | Points at |
 |:--|:--|
-| Agents, skills and CLAUDE.md | Links `~/.claude/CLAUDE.md`, one link per agent into `~/.claude/agents/` and one per skill into `~/.claude/skills/`. Removes links this repo no longer provides. |
-| Settings | Merges the defaults into `~/.claude/settings.json` and shows the diff first. Removes hook entries whose script under `~/.claude/hooks/` no longer exists. |
-| tmux | Links `~/.tmux.conf`, or adds one `source-file` line to your existing tmux config. |
-| Third-party skills | Installs the skills recorded in [`skills-lock.json`](skills-lock.json) that are missing, through the `skills` CLI. |
-| Unrecorded skills | Lists skills you installed with the CLI that the lock file does not record, and lets you pick which to add. |
+| `~/.claude/CLAUDE.md` | [`claude/CLAUDE.md`](claude/CLAUDE.md) |
+| `~/.claude/settings.json` | [`claude/settings.json`](claude/settings.json) |
+| `~/.claude/agents/<name>.md` | each agent in [`agents/`](agents) |
+| `~/.claude/skills/<name>` | each skill in [`skills/`](skills) |
+| `~/.tmux.conf` | [`tmux/tmux.conf`](tmux/tmux.conf), only when you have no tmux config yet; otherwise it prints the `source-file` line to add to yours |
 
 <details>
 <summary>More setup details</summary>
 
 <br>
 
-- `--dry-run` prints every step and command and changes nothing.
-- `--yes` applies every step without asking, for a fresh machine or a script.
-- Without a terminal and without `--yes`, the installer runs as a dry run and says so.
-- `~/.claude/agents` and `~/.claude/skills` stay real directories, so your own agents and skills live next to the linked ones.
-- Anything of yours already at a target is moved to `~/.dotclaude-backups/<timestamp>/`, never overwritten. Those lines are marked `backup`.
-- `./install.sh --uninstall` removes the links, restores the newest backups, removes the defaults you did not change, and removes the tmux line. Third-party skills are left installed.
-- **Needs:** macOS or Linux, `git`, Python 3.8 or later. Node 18 or later is needed only for the third-party skills step, which is skipped with a warning when `npx` is missing. `tmux` 3.3 or later is optional.
+- `--dry-run` prints what would change and changes nothing.
+- Anything already where a link goes is removed, with a `warn:` line saying so. There are no backups, so run `--dry-run` first.
+- `~/.claude/agents` and `~/.claude/skills` stay real directories, so your own agents and skills live next to the linked ones. Broken links in them are removed.
+- Because `settings.json` is a link, changes Claude Code makes to it (`/config`, plugins, "always allow") land in `claude/settings.json` here, to commit or discard.
+- `./install.sh --uninstall` removes every link into this checkout and nothing else.
+- Re-run the installer after the repo adds or removes an agent or skill; edits to existing files arrive through the links.
+- **Needs:** macOS or Linux and bash. `tmux` 3.3 or later is optional.
 
 </details>
 
 <details>
-<summary>How settings are merged</summary>
+<summary>Third-party skills</summary>
 
 <br>
 
-The installer records the defaults it applied in `~/.claude/dotclaude-state.json` and does a three-way merge on every run, between the previously applied defaults, your file and the new defaults.
-
-- A value you never changed follows the repo, including removal when the repo drops it.
-- A value you changed or removed stays as you left it.
-- List entries merge one by one, so your own allow rules and hooks survive.
-- Every install is a clean one: a hook entry whose script under `~/.claude/hooks/` is missing is removed, whoever added it. Hooks that run anything else are kept.
-- Plugin and marketplace entries an older version of this repo set are now yours and are left alone.
-
-</details>
-
-<details>
-<summary>How third-party skills are handled</summary>
-
-<br>
-
-Third-party skills are never committed here.
-`skills-lock.json` records where each one comes from, and the installer restores a missing one with a pinned CLI version:
+Third-party skills are never committed here, and the installer does not install them.
+[`skills-lock.json`](skills-lock.json) records where each one comes from; install one with:
 
 ```bash
 npx skills@1.8.1 add <source> -g -a claude-code -s <name>
 ```
-
-It never runs `update` and never removes a skill.
-A recorded skill with the same name as one in `skills/` is skipped, because the repo's copy wins.
 
 </details>
 
@@ -199,7 +180,7 @@ Each rule is a default with its reason, and none forbids a built-in agent, skill
 
 ## Settings
 
-[`claude/settings.json`](claude/settings.json) sets these defaults; change any of them in `~/.claude/settings.json` and your value is kept.
+[`claude/settings.json`](claude/settings.json) sets these; `~/.claude/settings.json` links to it, so a change made either way lands in this repo.
 
 - No `defaultMode`, so sessions start in the built-in auto mode. This repo registers no guard hooks, so do not pair it with bypass mode unless you accept that nothing stands between a mistaken command and the disk.
 - `"skipDangerousModePermissionPrompt": true`, so switching a session into bypass mode does not ask for confirmation first.
@@ -232,7 +213,7 @@ This repo is public, so it is not a home repo itself and holds no pointers to pr
 scripts/check.sh
 ```
 
-It compiles every script, lints the shell files when `shellcheck` is installed, and runs the tests: the installer in a throwaway `HOME` with a fake `npx`, both skill scripts, and checks that no agent, skill or settings default restricts a built-in capability.
+It compiles every script, lints the shell files when `shellcheck` is installed, and runs the tests: the installer in a throwaway `HOME`, both skill scripts, and checks that no agent, skill or settings default restricts a built-in capability.
 
 <br>
 
