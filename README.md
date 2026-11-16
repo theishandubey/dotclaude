@@ -1,187 +1,230 @@
+<div align="center">
+
 # dotclaude
 
-An installable Claude Code setup: a three-tier agent roster, the orchestrator playbook that drives it, shared coding rules, two guard hooks, vendored skills, personal settings defaults and a tmux config.
-`install.sh` links it into `~/.claude` and merges the settings defaults into your own `~/.claude/settings.json`.
+**A small Claude Code setup: one rules file, settings defaults, two agents and eight skills.**
 
-## What you get
+The main session plans and builds. Nothing here replaces or restricts what Claude Code already ships.
 
-Ten subagents in `agents/`:
+[![MIT License](https://img.shields.io/badge/license-MIT-black?style=flat-square)](LICENSE)
+[![Skills](https://img.shields.io/badge/skills-8-black?style=flat-square)](#skills)
+[![Claude Code](https://img.shields.io/badge/for-Claude%20Code-d97757?style=flat-square)](https://claude.com/claude-code)
 
-| Agent | Tier | Model | Effort | Role |
-|---|---|---|---|---|
-| `architect` | advisor | opus | high | Designs, ADRs, trade-offs and cross-cutting implementation plans |
-| `backend-engineer` | advisor | opus | medium | APIs, services, databases, queues, auth, data modeling |
-| `frontend-engineer` | advisor | opus | medium | Components, state, rendering performance, accessibility, motion |
-| `sre` | advisor | opus | medium | Infrastructure, CI/CD, observability, deployment safety, incidents |
-| `implementer` | worker | sonnet | high | Builds from a plan, in place |
-| `parallel-implementer` | worker | sonnet | high | Builds in its own git worktree, for parallel streams |
-| `fixer` | worker | sonnet | high | Bugs with regression tests, failing tests, build breaks, merge conflicts and review findings you pass on |
-| `doc-writer` | worker | sonnet | high | Standalone docs |
-| `Explore` | explorer | sonnet | medium | Read-only codebase search; replaces the built-in `Explore` to pin it to Sonnet |
-| `web-researcher` | explorer | sonnet | medium | Read-only web research |
+[Install](#install) · [Skills](#skills) · [Agents](#agents-and-models) · [Workflow](#workflow) · [Rules](#rules) · [Settings](#settings) · [Home repos](#home-repos) · [Credits](#credits)
 
-Advisors plan and never edit project files.
-Workers implement.
-Explorers search, and keep search output out of the main session; `Explore` takes the built-in agent's name so Claude Code's own code searches run on Sonnet instead of the main session's model.
+</div>
 
-The main session is the orchestrator.
-Its playbook, `claude/orchestrator.md`, reaches only the main session: a `SessionStart` hook prints it, so subagents never pay for it.
-It routes each request through a triage ladder and commits the work itself.
-Code and security review are yours: run `/code-review` and `/security-review` when you want them, and pass on the findings you want fixed.
+<br>
 
-`claude/CLAUDE.md` holds the shared rules every session and agent follows (the two explorers skip it with `omitClaudeMd` and restate the one rule they need).
+This is my personal Claude Code configuration, symlinked into `~/.claude` by an installer that asks before each step.
+It is three things:
 
-`implementer` and `parallel-implementer` write and run unit tests for the logic every change adds or alters, and `fixer` adds a unit regression test for each bug, all following the `testing` skill: tests call public functions without mocking the repo's own code, variations go in table-driven tests, and output is kept in files with only failures read.
-End-to-end tests are written and run only when you ask for them; then the same agents cover the affected user flows through the real entry point, adding a minimal Playwright setup to a web app that has none.
-No other agent writes, runs or reviews tests, so suites are not rerun by several agents for one change; code and security review are yours.
-To map pages whose roles and labels are unclear from the code, agents use `agent-browser` when it is installed (`npm i -g agent-browser && agent-browser install`).
+- **Rules** in [`claude/CLAUDE.md`](claude/CLAUDE.md): how to write, what a finished change must have, and what to weigh when choosing how to execute a plan.
+- **Settings defaults** in [`claude/settings.json`](claude/settings.json), merged into your own file without overwriting what you changed.
+- **Skills** in [`skills/`](skills): one method each, for work the built-in commands do not teach.
+- **Two agents** in [`agents/`](agents): `worker` and `domain-advisor`, which fix a model and an effort level and nothing else.
 
-Shared agent instructions live in skills instead of being copied into each agent:
-- `plan-handoff`: how planning advisors write plans, with the plan template.
-- `plan-execution`: how workers execute a plan.
-- `parallel-build`: the orchestrator's procedure for parallel worktree builds.
-- `testing`: how implementers and `fixer` write and run unit tests for every change, and end-to-end tests when you ask for them.
+There are no hooks, and no agent or skill shadows a built-in.
+Review, verification, planning and memory are left to `/code-review`, `/run`, plan mode and auto memory.
 
-## Requirements
-
-- Claude Code 2.1.295 or later (hooks use `onFailure: "block"`).
-- Access to Opus 5.5 and Sonnet 5.5; Fable 5.1 is used only when you ask for it.
-  On Bedrock, Vertex AI or Foundry, set the `ANTHROPIC_DEFAULT_*_MODEL` values in `~/.claude/settings.json` to your provider's model IDs; values you change are kept on later installs.
-- macOS or Linux with `git` and `python3` 3.8 or later.
-  The hooks run on `python3` and fail closed: without it, Bash and advisor writes are blocked.
-- `tmux` 3.3 or later, optional.
+<br>
 
 ## Install
 
-> **Warning: the settings defaults run Claude Code in bypass permissions mode.**
-> `claude/settings.json` sets `permissions.defaultMode` to `bypassPermissions` and skips the dangerous-mode prompt, so Claude Code runs commands and edits files without asking.
-> The Bash guard below is an accident guard for catastrophic commands, not a sandbox.
-> Read `claude/settings.json` before installing.
-
 ```bash
 git clone https://github.com/theishandubey/dotclaude.git ~/dotclaude
-```
-
-```bash
 ~/dotclaude/install.sh --dry-run
-```
-
-```bash
 ~/dotclaude/install.sh
 ```
 
-`--dry-run` prints every planned change and touches nothing.
-Changes marked `confirm` (backing up a file you own, or editing your tmux config) ask first; pass `--yes` to skip the question, which is required when not run from a terminal.
-A re-run with nothing to do changes nothing.
+The installer works in steps and asks before each one.
+Answer `y` to apply a step, `s` to skip it, or `q` to stop.
 
-| Target | What install does |
-|---|---|
-| `~/.claude/CLAUDE.md` | link to `claude/CLAUDE.md` |
-| `~/.claude/agents/<name>.md` | a link per agent in `agents/` |
-| `~/.claude/hooks/<name>.py` | a link per hook in `hooks/` |
-| `~/.claude/skills/<name>` | a link per skill in `skills/` |
-| `~/.claude/settings.json` | your file, with the defaults merged in |
-| `~/.tmux.conf` | a link to `tmux/tmux.conf`, or a `source-file` line added to your existing tmux config |
+| Step | What it does |
+|:--|:--|
+| Agents, skills and CLAUDE.md | Links `~/.claude/CLAUDE.md`, one link per agent into `~/.claude/agents/` and one per skill into `~/.claude/skills/`. Removes links this repo no longer provides. |
+| Settings | Merges the defaults into `~/.claude/settings.json` and shows the diff first. Removes hook entries whose script under `~/.claude/hooks/` no longer exists. |
+| tmux | Links `~/.tmux.conf`, or adds one `source-file` line to your existing tmux config. |
+| Third-party skills | Installs the skills recorded in [`skills-lock.json`](skills-lock.json) that are missing, through the `skills` CLI. |
+| Unrecorded skills | Lists skills you installed with the CLI that the lock file does not record, and lets you pick which to add. |
 
-`agents`, `hooks` and `skills` stay real directories, so your own agents, hooks and skills can live next to the linked ones.
-An older install that linked a whole directory into a checkout of this repo, including from when it was named claude-config, is converted, and any files of yours that the checkout's git does not track are copied over.
-Anything else already at a target is moved to `~/.dotclaude-backups/<timestamp>/` first, never overwritten.
-Links into this repo that it no longer provides are removed.
+<details>
+<summary>More setup details</summary>
 
-`./install.sh --uninstall` removes the links, restores the newest backups, removes the defaults you did not change from `settings.json`, and removes the tmux line.
+<br>
 
-### How settings are merged
+- `--dry-run` prints every step and command and changes nothing.
+- `--yes` applies every step without asking, for a fresh machine or a script.
+- Without a terminal and without `--yes`, the installer runs as a dry run and says so.
+- `~/.claude/agents` and `~/.claude/skills` stay real directories, so your own agents and skills live next to the linked ones.
+- Anything of yours already at a target is moved to `~/.dotclaude-backups/<timestamp>/`, never overwritten. Those lines are marked `backup`.
+- `./install.sh --uninstall` removes the links, restores the newest backups, removes the defaults you did not change, and removes the tmux line. Third-party skills are left installed.
+- **Needs:** macOS or Linux, `git`, Python 3.8 or later. Node 18 or later is needed only for the third-party skills step, which is skipped with a warning when `npx` is missing. `tmux` 3.3 or later is optional.
 
-The installer records the defaults it applied in `~/.claude/dotclaude-state.json` and does a three-way merge on every run, between the previously applied defaults, your file and the new defaults:
+</details>
+
+<details>
+<summary>How settings are merged</summary>
+
+<br>
+
+The installer records the defaults it applied in `~/.claude/dotclaude-state.json` and does a three-way merge on every run, between the previously applied defaults, your file and the new defaults.
+
 - A value you never changed follows the repo, including removal when the repo drops it.
 - A value you changed or removed stays as you left it.
-- List entries merge one by one, so your own allow rules and hooks survive while the repo's entries are added, updated or retired.
+- List entries merge one by one, so your own allow rules and hooks survive.
+- Every install is a clean one: a hook entry whose script under `~/.claude/hooks/` is missing is removed, whoever added it. Hooks that run anything else are kept.
+- Plugin and marketplace entries an older version of this repo set are now yours and are left alone.
 
-## Guards
+</details>
 
-`hooks/bash-guard.py` runs before every `Bash` call and blocks only catastrophic, unrecoverable commands:
-- recursive `rm`, `find -delete`, `chmod -R` or `chown -R` on the filesystem root, a top-level system directory, a mounted volume, your home directory or its top-level folders, the project, the working directory, or a git repository;
-- formatting or overwriting a disk (`mkfs`, `wipefs`, `dd` or a redirect to a raw disk, `diskutil erase*`);
-- dropping a database (`DROP DATABASE`, `DROP SCHEMA`, `dropdb`, Redis `FLUSHALL`, `dropDatabase()`, `prisma migrate reset`, `rails db:drop`, and similar);
-- destroying infrastructure (`terraform destroy`, `pulumi destroy`, `kubectl delete namespace`, deleting cloud databases, buckets or projects, `gh repo delete`);
-- force-pushing or deleting `main` or `master`.
+<details>
+<summary>How third-party skills are handled</summary>
 
-It looks through quoting, `sudo`, `env`, `xargs` and other wrappers, `sh -c` and nested shells, `eval`, command substitution and heredocs fed to a shell or database client.
-Everything else, such as `git reset --hard` or `rm -rf build`, runs.
-A blocked command is never worked around: the agent asks you to run it.
+<br>
 
-`hooks/write-guard.py` runs in every advisor before `Write`, `Edit` and `NotebookEdit`.
-It allows only the advisor's memory under `.claude/agent-memory/` and, for planning advisors, `plans/NNN-<slug>.md` and `plans/README.md`, after resolving symlinks.
-Advisors' `Bash` is read-only by instruction only.
+Third-party skills are never committed here.
+`skills-lock.json` records where each one comes from, and the installer restores a missing one with a pinned CLI version:
 
-Both guards fail closed: if a hook cannot run, the call is blocked.
+```bash
+npx skills@1.8.1 add <source> -g -a claude-code -s <name>
+```
 
-The settings also disable the built-in `Plan` agent, which runs on the main session's model, so planning goes to the advisors.
+It never runs `update` and never removes a skill.
+A recorded skill with the same name as one in `skills/` is skipped, because the repo's copy wins.
 
-## Agent memory in worktrees
+</details>
 
-Advisors keep project memory in `.claude/agent-memory/`.
-A session running in a git worktree would otherwise write that memory into the worktree, where it is lost when the worktree goes.
-The `SessionStart` hook therefore links the worktree's memory directories to the main checkout's, merging anything already there (an older conflicting file is kept as `*.before-worktree-merge`).
-Projects that commit `.claude/agent-memory` to git are left alone.
+<br>
 
 ## Skills
 
-`skills/` holds this repo's own skills and vendored third-party skills, all committed.
-`skills-lock.json` records where each vendored skill came from, and `.claude/skills` links to `skills/` so the [skills CLI](https://skills.sh) manages them in place:
+Claude Code loads a skill when your request matches its description.
+You do not call them by name, except `setup-home-repo`, which runs only when typed.
 
-```bash
-npx skills add <owner/repo> -s <skill> -a claude-code -y
+### Understanding and fixing
+
+| Skill | What it does |
+|:--|:--|
+| [**map-architecture**](skills/map-architecture/SKILL.md) | One architecture document with Mermaid diagrams where every node, edge and state points at `path:line` on a pinned commit. State machines are drawn from a table of every write to the state field, and a script checks the references. |
+| [**diagnose**](skills/diagnose/SKILL.md) | A failing check before any theory, the fix at the first place things went wrong, and a measured failure rate for flaky tests instead of retries. |
+| [**benchmark**](skills/benchmark/SKILL.md) | Seven questions a performance number has to survive before it is reported. |
+
+### Deciding what to build
+
+| Skill | What it does |
+|:--|:--|
+| [**spec**](skills/spec/SKILL.md) | Interviews you in rounds with a recommended answer per question, then writes acceptance cases, a test plan and thin slices with their blockers. |
+| [**design**](skills/design/SKILL.md) | Caller usage first, two structurally different designs before choosing, and a list of shapes to reject. |
+| [**prototype**](skills/prototype/SKILL.md) | The smallest throwaway that answers one design question, then a report and a delete. |
+
+### Writing and workspace
+
+| Skill | What it does |
+|:--|:--|
+| [**unslop**](skills/unslop/SKILL.md) | Cuts AI tells from anything a person will read. |
+| [**setup-home-repo**](skills/setup-home-repo/SKILL.md) | Turns a folder of repos into a private repo that versions their shared plans, specs and architecture docs. Typed only: `/setup-home-repo`. |
+
+Recorded third-party skills, installed globally by the installer: [`agent-browser`](https://github.com/vercel-labs/agent-browser) for driving a browser, [`shadcn`](https://github.com/shadcn/ui) and [`improve`](https://github.com/shadcn/improve), [`portless`](https://github.com/vercel-labs/portless) for named local dev URLs, and the seven animation and interface design skills from [emilkowalski/skill](https://github.com/emilkowalski/skill).
+
+<br>
+
+## Agents and models
+
+The main session plans, on whichever model you start it with.
+Two agents and one setting decide where the rest runs:
+
+| Need | Goes to | Model |
+|:--|:--|:--|
+| A self-contained slice with known files and a proving command | [`worker`](agents/worker.md) | Sonnet, high effort |
+| An independent review of a cross-cutting or hard-to-reverse plan | [`domain-advisor`](agents/domain-advisor.md), told which domain to review as | Opus, high effort |
+| A stronger opinion mid-task | The built-in advisor, set by `advisorModel` | Fable |
+| Codebase search | The built-in Explore agent, dispatched with `model: sonnet` and `effort: medium` | Sonnet, medium effort |
+| A side task that needs the session's context | A fork | The session's model |
+
+The session can pass a stronger model on a single dispatch, for a slice that failed twice.
+Neither agent restricts tools.
+
+<br>
+
+## Workflow
+
+```mermaid
+flowchart TD
+  repo([Unfamiliar repo]) -.-> map["map-architecture<br>architecture doc, once per repo"]
+  req([Request]) --> kind{What kind?}
+  kind -- "bug, cause not obvious" --> diagnose["diagnose<br>failing command and cause"]
+  kind -- "vague feature" --> spec["spec<br>acceptance cases and slices"]
+  kind -- "clear but non-trivial" --> plan
+  kind -- "bounded change" --> build
+  diagnose -- "small fix" --> build
+  diagnose -- "larger fix" --> plan
+  spec --> plan["Plan mode<br>slices, blockers, files owned,<br>a proving command per slice"]
+  map -.-> plan
+  plan --> approve{You approve}
+  plan -. "cross-cutting or hard to reverse" .-> review["domain-advisor<br>independent review"]
+  review -.-> plan
+  approve --> shape["Session states how it will execute<br>and names a workflow if one fits"]
+  shape --> build["Build<br>main session, forks, worker"]
+  aids["design, prototype, benchmark<br>loaded when the work calls for them"] -.-> plan
+  aids -.-> build
+  build --> done["Done means<br>outcomes reached"]
+  done --> ship([Ship when asked])
 ```
 
-```bash
-npx skills update -p -y
-```
+This is the usual path, not a fixed route: skills load when a request matches them, and a bounded change skips planning.
+Each stage hands the next a file or a command: the architecture doc informs the plan, the failing command from `diagnose` becomes a proving command, and the acceptance cases from `spec` become the final check.
+Approving the plan starts the build; there is no separate build command.
+The session decides how to execute (alone, forks, `worker` agents, worktrees, `/batch` or a team) and says so first.
+A scripted workflow runs only if you answer "use a workflow".
 
-Review the diff before committing an update: vendored skills run with full permissions.
+<br>
 
-Vendored skills are committed unmodified first, and any adaptation to this setup lands as a separate commit on top, so an update is merged against a visible local diff rather than overwriting it.
-These are adapted locally: `verification-before-completion`, `receiving-code-review`, `diagnosing-bugs`, `supabase-postgres-best-practices`, `vercel-react-best-practices`, and every skill vendored from poteto's pstack (the `principle-*` skills, `benchmark-checklist` and `unslop`).
+## Rules
 
-| Agent | Preloaded vendored skills | Invoked on demand |
-|---|---|---|
-| `architect` | `codebase-design`, `domain-modeling`, principle: attack-the-premise | |
-| `backend-engineer` | `supabase-postgres-best-practices` | `benchmark-checklist` |
-| `sre` | principle: fix-root-causes | `diagnosing-bugs`, `supabase-postgres-best-practices`, `benchmark-checklist` |
-| `frontend-engineer` | | design, motion and UI skills, `vercel-react-best-practices` |
-| `fixer` | `verification-before-completion`, `testing`, `diagnosing-bugs`, `receiving-code-review`, principle: fix-root-causes | |
-| `implementer`, `parallel-implementer` | `verification-before-completion`, `testing` | `agent-browser` |
-| `doc-writer` | `verification-before-completion`, `unslop` | |
+[`claude/CLAUDE.md`](claude/CLAUDE.md) is loaded in every session.
+Each rule is a default with its reason, and none forbids a built-in agent, skill or command.
 
-The orchestrator writes prose for people through `unslop`.
+| Section | What it settles |
+|:--|:--|
+| Writing | No em dashes, no code comments that restate the code, one sentence per line in long Markdown. |
+| Orchestration | The session holding the plan decides whether to work alone, fork, use `worker` agents, worktrees, `/batch` or a team, and says which before starting. The file gives it defaults for which model does what and facts to weigh, not a route. |
+| Plans | What a plan must contain and where plans and notes live. |
+| Working in a repo | Notes go in the repo's `.claude/`, kept out of git through `.git/info/exclude`. |
+| Done means | Seven outcomes a finished change must have: a reproduced bug, unit tests, a green final run, one real run, an independent review, measured speed claims, no ignored failures. |
+| Shipping, Learning, Safety, Environment | Atomic commits staged by name, corrections saved to memory, a confirmation before destructive commands, scratch files outside the repo. |
+| Principles, Commits and branches | Subtraction first, one place per decision, commit messages that describe the change. |
 
-## Cleanup
+<br>
 
-`scripts/cleanup.py` removes git worktrees and build caches that are safe to lose.
-It only reports what it would do unless you pass `--yes`:
+## Settings
 
-```bash
-scripts/cleanup.py --repo ~/code/app --caches ~/code
-```
+[`claude/settings.json`](claude/settings.json) sets these defaults; change any of them in `~/.claude/settings.json` and your value is kept.
 
-```bash
-scripts/cleanup.py --repo ~/code/app --caches ~/code --yes
-```
+- No `defaultMode`, so sessions start in the built-in auto mode. This repo registers no guard hooks, so do not pair it with bypass mode unless you accept that nothing stands between a mistaken command and the disk.
+- `"skipDangerousModePermissionPrompt": true`, so switching a session into bypass mode does not ask for confirmation first.
+- `"attribution": false`, so commits and PRs carry no co-author trailer.
+- The model aliases are pinned: Fable to 5.2, and Opus, Sonnet and Haiku to 5.5.
+- `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` is `30`, so a conversation is compacted once it fills 30% of the auto-compact window.
+- `"advisorModel": "fable"`, so a session on Opus or Sonnet can consult Fable mid-task. The advisor is experimental and each call is billed at Fable's rate.
+- Agent teams enabled, worktrees based on the current `HEAD`, and an allow list for common build and git commands.
+- The owner's taste: the `opus` model, the `latest` update channel, the fullscreen TUI, the dark theme and notifications.
 
-A worktree is removed only when all of these hold:
-- it is unlocked, is not the one you run from, and contains no other worktree;
-- it has been idle for `--min-age` days (default 7);
-- it has no uncommitted or untracked changes, and its only ignored files are build caches, `node_modules`, `.venv`, `.DS_Store` or symlinks, so a local `.env` or database keeps it;
-- its HEAD and every commit in its HEAD reflog are merged into the base branch (`origin/HEAD`, then `main`, then `master`, or `--base`).
+Check what a session costs with the built-in commands: `/context` for what is loaded at start, `/usage` for spend, `/skill-doctor` for skills that never fire or load too much, and `/doctor prompt-audit` for the rules file.
 
-Its branch is then deleted with `git branch -d`, which refuses unmerged work.
-Worktree records whose directory is gone are pruned once they are older than `--min-age`, unless one of them is on an unmounted volume.
-Idleness is read from the worktree directory and its git metadata, so a long session that only edits files in subdirectories can look idle; raise `--min-age` if you keep sessions open that long.
-Without `--repo` it cleans the repository you run it from.
+<br>
 
-A build cache is a directory named `.next`, `.nuxt`, `.turbo`, `.parcel-cache`, `.svelte-kit`, `.vite`, `__pycache__`, `.pytest_cache`, `.mypy_cache` or `.ruff_cache`, or a `target` next to a `Cargo.toml`, found under a `--caches` path.
-It is removed only when it is inside a git repository, ignored by git, holds no tracked files and has been idle for `--min-age` days.
-`node_modules` is never touched.
+## Home repos
+
+A home repo is a small private git repo at the root of a folder that holds several repos.
+It commits a `CLAUDE.md` with an "Other repos" table and a `.claude/` folder of plans, specs, architecture docs and decisions; the child repos stay ignored and keep their own history.
+
+Start Claude Code in the workspace folder and type `/setup-home-repo`.
+Run it again later to refresh the table; your notes in it are kept.
+
+This repo is public, so it is not a home repo itself and holds no pointers to private work.
+
+<br>
 
 ## Development
 
@@ -189,9 +232,27 @@ It is removed only when it is inside a git repository, ignored by git, holds no 
 scripts/check.sh
 ```
 
-It runs the end-to-end tests for both guards, the installer (in a throwaway `HOME`) and the session hook, and checks the agent definitions against this README, the skills they reference, and the playbook.
+It compiles every script, lints the shell files when `shellcheck` is installed, and runs the tests: the installer in a throwaway `HOME` with a fake `npx`, both skill scripts, and checks that no agent, skill or settings default restricts a built-in capability.
 
-## Settings defaults
+<br>
 
-Besides permissions and hooks, `claude/settings.json` sets the owner's preferences: model aliases pinned to the 5-series models, the `opus` model, agent teams, auto-compaction at 30%, empty commit and PR attribution, `plans/mode` as the plan-mode directory, the `claude-mods` plugins, the `latest` update channel, the fullscreen TUI, the dark theme and notifications.
-Change any of them in `~/.claude/settings.json`; your values are kept.
+## Credits
+
+The skills are written fresh, but their methods come from other people's work.
+
+| Skill | Ideas from |
+|:--|:--|
+| diagnose | [mattpocock/skills](https://github.com/mattpocock/skills) `diagnosing-bugs`; [pstack](https://github.com/cursor/plugins/tree/main/pstack) bug-fix playbook, `principle-fix-root-causes`, `principle-attack-the-premise`; [simcraft](https://github.com/dotslashsimran/simcraft) `flaky-test-killer` |
+| spec | mattpocock/skills `grilling`, `to-spec`, `to-tickets`; [gstack](https://github.com/garrytan/gstack) `office-hours`, `plan-eng-review`; pstack `poteto-mode` |
+| design | pstack `architect`; mattpocock/skills `codebase-design`, `domain-modeling` |
+| prototype | mattpocock/skills `prototype`; pstack prototype playbook |
+| benchmark | pstack `benchmark-checklist`; simcraft `benchmark-honestly` |
+| map-architecture | simcraft `codebase-map`; [archify](https://github.com/tt-a1i/archify) |
+| unslop | Adapted from pstack `unslop`, with its license in the skill folder |
+| setup-home-repo | The home repo pattern described on [aihero.dev](https://www.aihero.dev) |
+
+mattpocock/skills, pstack, simcraft and gstack are MIT licensed; archify is Apache-2.0.
+
+## License
+
+[MIT](LICENSE)
