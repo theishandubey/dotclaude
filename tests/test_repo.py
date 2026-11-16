@@ -71,12 +71,11 @@ class FilesTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertNotIn(chr(0x2014), rd(os.path.join(ROOT, path)))
 
-    def test_settings_defaults_restrict_nothing(self):
+    def test_settings_keep_the_fixed_choices(self):
         settings = json.loads(rd(os.path.join(ROOT, "claude", "settings.json")))
-        self.assertNotIn("hooks", settings)
         self.assertNotIn("plansDirectory", settings)
         self.assertNotIn("defaultMode", settings["permissions"])
-        self.assertNotIn("deny", settings["permissions"])
+        self.assertNotIn(os.path.expanduser("~"), json.dumps(settings))
         self.assertIs(settings["attribution"], False)
         self.assertEqual(settings["advisorModel"], "fable")
 

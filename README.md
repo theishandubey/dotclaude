@@ -213,7 +213,7 @@ This repo is public, so it is not a home repo itself and holds no pointers to pr
 scripts/check.sh
 ```
 
-It compiles every script, lints the shell files when `shellcheck` is installed, and runs the tests: the installer in a throwaway `HOME`, both skill scripts, and checks that no agent, skill or settings default restricts a built-in capability.
+It compiles every script, lints the shell files when `shellcheck` is installed, and runs the tests: the installer in a throwaway `HOME`, both skill scripts, checks that no agent or skill restricts a built-in capability, and that `settings.json` holds no machine-specific home path.
 
 <br>
 
